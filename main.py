@@ -1,65 +1,72 @@
+# drive_paddy/main.py
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, RTCConfiguration
-from video_processing import DrowsinessDetector, EYE_AR_THRESHOLD, EYE_AR_CONSEC_FRAMES # Import constants from video_processing
+import yaml
+import os
+from dotenv import load_dotenv
 
-# Set page config
+# --- Main Application UI ---
 st.set_page_config(
-    page_title="Driver Drowsiness Detection System",
+    page_title="Drive Paddy | Home",
     page_icon="🚗",
     layout="wide"
 )
 
-# Define constants not moved to video_processing
-# HEAD_TILT_THRESHOLD = 25 # This constant was in the original file but not used. Removed for now.
+# Load config to display current settings on the home page
+@st.cache_resource
+def load_app_config():
+    load_dotenv()
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    with open('config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+    return config, gemini_api_key
 
-# Streamlit UI
-def main():
-    st.title("Driver Drowsiness Detection System")
-    
-    # Sidebar for configuration
-    st.sidebar.header("Detection Settings")
-    # Use the imported constants as default values
-    ear_threshold = st.sidebar.slider("Eye Aspect Ratio Threshold", 0.1, 0.4, EYE_AR_THRESHOLD, 0.01)
-    frame_threshold = st.sidebar.slider("Consecutive Frames Threshold", 5, 50, EYE_AR_CONSEC_FRAMES, 1)
-    
-    # Update constants in video_processing module if changed by user
-    # This requires a mechanism to pass these values to the DrowsinessDetector instance
-    # For now, DrowsinessDetector uses the constants defined in video_processing.py
-    # A more robust solution would involve passing these as parameters to DrowsinessDetector
-    # or having a shared configuration object.
+config, gemini_api_key = load_app_config()
 
-    # Main content
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        st.header("Live Detection")
-        webrtc_ctx = webrtc_streamer(
-            key="drowsiness-detection",
-            video_processor_factory=DrowsinessDetector, # DrowsinessDetector will use its own EYE_AR_THRESHOLD and EYE_AR_CONSEC_FRAMES
-            rtc_configuration=RTCConfiguration(
-                {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-            ),
-            media_stream_constraints={"video": True, "audio": False},
-        )
-    
-    with col2:
-        st.header("Status")
-        status_placeholder = st.empty()
-        
-        if webrtc_ctx.state.playing:
-            status_placeholder.success("System Active")
-        else:
-            status_placeholder.warning("System Inactive - Click 'Start' to begin monitoring")
-        
-        st.subheader("How It Works")
-        st.markdown("""
-        1. **Eye Monitoring**: Detects eye closure using Eye Aspect Ratio (EAR)
-        2. **Alert System**: Triggers audio alerts when drowsiness is detected
-        3. **Real-time Processing**: Analyzes video feed continuously
-        """)
-        
-        st.subheader("Tips")
-        st.info("Ensure good lighting for accurate detection")
+# --- Initialize Session State ---
+# This ensures they are set when the app first loads.
+if "play_audio" not in st.session_state:
+    st.session_state.play_audio = None
+if "active_alerts" not in st.session_state:
+    st.session_state.active_alerts = {"status": "Awake"}
 
-if __name__ == "__main__":
-    main()
+
+# --- Page Content ---
+st.title("🚗 Welcome to Drive Paddy!")
+st.subheader("Your AI-Powered Drowsiness Detection Assistant")
+
+st.markdown("""
+Drive Paddy is a real-time system designed to enhance driver safety by detecting signs of drowsiness. 
+It uses your computer's webcam to analyze facial features and head movements, providing timely alerts 
+to help prevent fatigue-related accidents.
+""")
+
+st.info("Navigate to the **Live Detection** page from the sidebar on the left to start the system.")
+
+st.markdown("---")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.header("How It Works")
+    st.markdown("""
+    The system employs a sophisticated hybrid strategy to monitor for signs of fatigue:
+    - **👀 Eye Closure Detection**: Measures Eye Aspect Ratio (EAR) to detect prolonged blinks or closed eyes.
+    - **🥱 Yawn Detection**: Measures Mouth Aspect Ratio (MAR) to identify yawns.
+    - **😴 Head Pose Analysis**: Tracks head pitch and yaw to detect nodding off or looking away from the road.
+    - **🧠 CNN Model Inference**: A deep learning model provides an additional layer of analysis.
+    
+    These signals are combined into a single drowsiness score to trigger alerts accurately.
+    """)
+
+with col2:
+    st.header("Current Configuration")
+    alert_method = "Gemini API" if config.get('gemini_api', {}).get('enabled') and gemini_api_key else "Static Audio File"
+    st.markdown(f"""
+    - **Detection Strategy**: `{config['detection_strategy']}`
+    - **Alert Method**: `{alert_method}`
+    """)
+    st.warning("Ensure good lighting and that your face is clearly visible for best results.")
+
+st.markdown("---")
+st.markdown("Created with ❤️ using Streamlit, OpenCV, and MediaPipe.")
+

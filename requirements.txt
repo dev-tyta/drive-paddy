@@ -1,0 +1,15 @@
+huggingface-hub
+streamlit
+streamlit-webrtc
+opencv-contrib-python
+mediapipe
+numpy
+pyyaml
+simpleaudio
+pydub
+python-dotenv           
+google-generativeai     
+gTTS                   
+torch                  
+torchvision            
+dlib                    

@@ -1,0 +1,49 @@
+# config.yaml
+# Main configuration file for the Drive Paddy application.
+
+# -- Detection Strategy --
+# Sets the active drowsiness detection method.
+# Options: "geometric", "cnn_model", "hybrid"
+detection_strategy: "geometric"
+
+# -- Geometric Strategy Settings --
+# Parameters for the facial landmark-based detection methods.
+geometric_settings:
+  # Eye Aspect Ratio (EAR) for blink/closure detection
+  eye_ar_thresh: 0.23
+  eye_ar_consec_frames: 15
+
+  # Mouth Aspect Ratio (MAR) for yawn detection
+  yawn_mar_thresh: 0.70
+  yawn_consec_frames: 20
+
+  # Head Pose Estimation for look-away/nod-off detection
+  head_nod_thresh: 15.0      # Max downward pitch angle (in degrees)
+  head_look_away_thresh: 20.0 # Max yaw angle (in degrees)
+  head_pose_consec_frames: 20
+
+# -- CNN Model Settings --
+cnn_model_settings:
+  model_path: "models/best_model_efficientnet_b7.pth"
+  confidence_thresh: 0.8
+
+# -- Hybrid Strategy Settings --
+# Defines weights for combining signals into a single drowsiness score.
+# The system triggers an alert if the total score exceeds 'alert_threshold'.
+hybrid_settings:
+  alert_threshold: 1.0
+  weights:
+    eye_closure: 0.45
+    yawning: 0.30
+    head_nod: 0.55
+    looking_away: 0.25
+    cnn_prediction: 0.60 # Weight for the deep learning model's output
+
+# -- Alerting System --
+alerting:
+  alert_sound_path: "assets/alert.wav"
+  alert_cooldown_seconds: 5
+
+# -- Gemini API (Optional) --
+gemini_api:
+  enabled: true
